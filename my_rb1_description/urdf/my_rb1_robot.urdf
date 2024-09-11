@@ -115,7 +115,7 @@
     </link>
 
     <!-- Joint - chassis / front caster -->
-    <joint name="joint_front_caster" type="continuous">
+    <joint name="joint_front_caster" type="fixed">
         <origin rpy="0 0 0" xyz="-0.1 0.0 -0.15" />
         <child link="front_caster" />
         <parent link="base_link" />
@@ -150,7 +150,7 @@
     </link>
 
     <!-- Joint - chassis / back caster -->
-    <joint name="joint_back_caster" type="continuous">
+    <joint name="joint_back_caster" type="fixed">
         <origin rpy="0 0 0" xyz="0.1 0.0 -0.15" />
         <child link="back_caster" />
         <parent link="base_link" />
