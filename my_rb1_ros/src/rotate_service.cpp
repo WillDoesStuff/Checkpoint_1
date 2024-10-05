@@ -1,3 +1,4 @@
+#include "geometry_msgs/Quaternion.h"
 #include "my_rb1_ros/Rotate.h"
 #include "ros/init.h"
 #include "ros/publisher.h"
@@ -9,15 +10,21 @@
 #include <nav_msgs/Odometry.h>
 #include <string>
 
-float rotation_rate;
-const float cycle_time = 5.0;
+float rb1_yaw;
+float cycle_time = 1000;
 
 ros::ServiceServer rotate_service;
 ros::Publisher pub;
 ros::Subscriber sub;
 
 void odom_callback(const nav_msgs::Odometry::ConstPtr &msg) {
-  rotation_rate = abs(msg->twist.twist.angular.z * (180 / M_PI)); // degree/sec
+
+  geometry_msgs::Quaternion q = msg->pose.pose.orientation;
+
+  float siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+  float cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+
+  rb1_yaw = std::atan2(siny_cosp, cosy_cosp);
 }
 
 bool rotate_callback(my_rb1_ros::Rotate::Request &req,
@@ -27,27 +34,26 @@ bool rotate_callback(my_rb1_ros::Rotate::Request &req,
 
   ros::Rate loop_rate(cycle_time);
   geometry_msgs::Twist vel;
-
-  float count_time = 0;
-  float rotate_time = 0;
+  float countTime = 0.0;
+  float request_yaw = (req.degrees * M_PI / 180) + rb1_yaw;
+  float delta_yaw = abs(request_yaw - rb1_yaw);
 
   if (req.degrees > 0) {
-    vel.angular.z = 0.3;
+    vel.angular.z = 0.6;
   } else {
-    vel.angular.z = -0.3;
+    vel.angular.z = -0.6;
   }
 
-  // Start Rotation
-  pub.publish(vel);
+  float delta_time = (delta_yaw / abs(vel.angular.z)) * cycle_time;
 
   while (ros::ok()) {
-    rotate_time =
-        (static_cast<float>(abs(req.degrees)) / rotation_rate) * cycle_time;
-    count_time++;
+    pub.publish(vel);
+
+    countTime++;
     ros::spinOnce();
     loop_rate.sleep();
 
-    if (rotate_time < count_time) {
+    if (delta_time <= countTime) {
       break;
     }
   }
